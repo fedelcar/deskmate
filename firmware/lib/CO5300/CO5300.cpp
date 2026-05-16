@@ -18,12 +18,12 @@ CO5300::CO5300(int8_t cs, int8_t sclk, int8_t d0, int8_t d1, int8_t d2, int8_t d
     : _cs(cs), _sclk(sclk), _d0(d0), _d1(d1), _d2(d2), _d3(d3), _rst(rst), _w(w), _h(h) {}
 
 void CO5300::csLow() {
-    if (_cs < 32) GPIO.out_w1tc.val = _cs_mask;
+    if (_cs < 32) GPIO.out_w1tc = _cs_mask;
     else          GPIO.out1_w1tc.val = _cs_mask;
 }
 
 void CO5300::csHigh() {
-    if (_cs < 32) GPIO.out_w1ts.val = _cs_mask;
+    if (_cs < 32) GPIO.out_w1ts = _cs_mask;
     else          GPIO.out1_w1ts.val = _cs_mask;
 }
 
