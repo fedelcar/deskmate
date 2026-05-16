@@ -2,6 +2,9 @@
 #include <stdint.h>
 #include "driver/spi_master.h"
 
+// Max pixels per SPI transaction — keep well under hardware DMA limit
+#define CO5300_CHUNK_PX 16384  // 16 384 px × 2 bytes = 32 KB per chunk
+
 // CO5300 QSPI AMOLED driver using ESP-IDF raw SPI master (no esp_lcd dependency)
 class CO5300 {
 public:

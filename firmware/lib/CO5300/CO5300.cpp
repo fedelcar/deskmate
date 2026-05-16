@@ -30,7 +30,6 @@ esp_err_t CO5300::qspiWrite(uint8_t reg, const void *data, size_t len) {
     t.base.length    = len * 8;
     t.base.rxlength  = 0;
 
-    // polling for small writes (≤32 B), DMA-capable transmit for pixel bursts
     if (len <= 32) {
         return spi_device_polling_transmit(_spi, (spi_transaction_t *)&t);
     }
@@ -53,7 +52,8 @@ bool CO5300::begin(uint32_t freq) {
     bus.sclk_io_num   = _sclk;
     bus.quadwp_io_num = _d2;
     bus.quadhd_io_num = _d3;
-    bus.max_transfer_sz = (int)(_w * 80 * sizeof(uint16_t)); // 80 LVGL buffer lines
+    // chunk size + 4 bytes overhead for cmd/addr phase
+    bus.max_transfer_sz = CO5300_CHUNK_PX * (int)sizeof(uint16_t) + 4;
 
     esp_err_t r = spi_bus_initialize(SPI2_HOST, &bus, SPI_DMA_CH_AUTO);
     if (r != ESP_OK && r != ESP_ERR_INVALID_STATE) {
@@ -102,6 +102,17 @@ void CO5300::setWindow(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1) {
 }
 
 void CO5300::pushColors(uint16_t *colors, uint32_t len) {
-    // RAMWR (0x2C) + pixel data in one transaction — CS held low throughout
-    qspiWrite(0x2C, colors, len * sizeof(uint16_t));
+    // Split into CO5300_CHUNK_PX-pixel chunks.
+    // First chunk uses RAMWR (0x2C), subsequent ones use RAMWRC (0x3C)
+    // so the display cursor continues without re-seeking to window start.
+    uint32_t offset = 0;
+    bool first = true;
+    while (offset < len) {
+        uint32_t chunk = len - offset;
+        if (chunk > CO5300_CHUNK_PX) chunk = CO5300_CHUNK_PX;
+        uint8_t cmd = first ? 0x2C : 0x3C;
+        qspiWrite(cmd, colors + offset, chunk * sizeof(uint16_t));
+        offset += chunk;
+        first = false;
+    }
 }
