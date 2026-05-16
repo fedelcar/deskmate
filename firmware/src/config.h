@@ -11,22 +11,22 @@
 #define FETCH_INTERVAL_MS 60000   // refresh every 60 seconds
 
 // ─── Display pins  (Waveshare ESP32-S3-Touch-AMOLED-1.75) ───────────────────
-// Verify against: https://www.waveshare.com/wiki/ESP32-S3-Touch-AMOLED-1.75
-#define LCD_CS    6
-#define LCD_SCLK  47
-#define LCD_D0    18
-#define LCD_D1    7
-#define LCD_D2    8
-#define LCD_D3    9
-#define LCD_RST   17
+// Source: waveshareteam/ESP32-S3-Touch-AMOLED-1.75 pin_config.h
+#define LCD_CS    12
+#define LCD_SCLK  38
+#define LCD_D0    4
+#define LCD_D1    5
+#define LCD_D2    6
+#define LCD_D3    7
+#define LCD_RST   39
 #define LCD_W     466
 #define LCD_H     466
 
 // ─── Touch pins  (CST9217, I2C) ─────────────────────────────────────────────
-#define TOUCH_SDA   1
-#define TOUCH_SCL   2
-#define TOUCH_INT   3
-#define TOUCH_RST   -1
+#define TOUCH_SDA   15
+#define TOUCH_SCL   14
+#define TOUCH_INT   11
+#define TOUCH_RST   40
 #define TOUCH_ADDR  0x1A
 
 // ─── LVGL ────────────────────────────────────────────────────────────────────

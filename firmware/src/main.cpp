@@ -56,7 +56,7 @@ static void fetch_and_update() {
 // ─── Setup ───────────────────────────────────────────────────────────────────
 void setup() {
     Serial.begin(115200);
-    delay(500);
+    delay(3000); // wait for serial monitor to attach
     Serial.println("\n=== Deskmate booting ===");
 
     // 1. Display
