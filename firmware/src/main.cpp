@@ -97,6 +97,8 @@ void setup() {
 
     // 6. WiFi
     Serial.printf("[wifi] Connecting to %s\n", WIFI_SSID);
+    WiFi.persistent(false);
+    WiFi.mode(WIFI_STA);
     WiFi.begin(WIFI_SSID, WIFI_PASS);
     int tries = 0;
     while (WiFi.status() != WL_CONNECTED && tries < 60) {
