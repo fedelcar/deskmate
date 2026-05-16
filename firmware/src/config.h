@@ -7,6 +7,7 @@
 // ─── Server ──────────────────────────────────────────────────────────────────
 // mDNS hostname advertised by the Node server ("deskmate.local")
 #define SERVER_HOST "deskmate.local"
+#define SERVER_HOST_IP "192.168.0.15"  // Mac fallback if mDNS fails
 #define SERVER_PORT 3001
 #define FETCH_INTERVAL_MS 60000   // refresh every 60 seconds
 

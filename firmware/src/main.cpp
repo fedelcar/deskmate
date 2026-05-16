@@ -32,8 +32,8 @@ static void fetch_and_update() {
     if (ip != INADDR_NONE) {
         ip.toString().toCharArray(host, sizeof(host));
     } else {
-        strncpy(host, SERVER_HOST, sizeof(host));
-        Serial.printf("[fetch] mDNS failed, using %s\n", host);
+        strncpy(host, SERVER_HOST_IP, sizeof(host));
+        Serial.printf("[fetch] mDNS failed, using IP %s\n", host);
     }
 
     char url[128];
