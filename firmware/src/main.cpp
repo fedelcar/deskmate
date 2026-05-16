@@ -11,11 +11,6 @@
 #include "touch.h"
 #include "ui.h"
 
-// ─── LVGL tick source (called from FreeRTOS timer) ───────────────────────────
-static void lv_tick_task(void *) {
-    lv_tick_inc(5);
-}
-
 // ─── LVGL draw buffers (allocated in PSRAM) ──────────────────────────────────
 static lv_disp_drv_t    disp_drv;
 static lv_disp_draw_buf_t draw_buf;
@@ -92,14 +87,8 @@ void setup() {
     indev_drv.read_cb = touch_read;
     lv_indev_drv_register(&indev_drv);
 
-    // 4. LVGL tick (5 ms FreeRTOS timer)
-    esp_timer_handle_t timer;
-    esp_timer_create_args_t cfg = {
-        .callback = lv_tick_task,
-        .name     = "lvgl_tick",
-    };
-    esp_timer_create(&cfg, &timer);
-    esp_timer_start_periodic(timer, 5 * 1000); // 5 ms in µs
+    // 4. LVGL tick is driven by LV_TICK_CUSTOM in lv_conf.h (calls millis())
+    //    No manual timer needed.
 
     // 5. Build UI
     ui_init();

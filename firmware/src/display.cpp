@@ -1,6 +1,7 @@
 #include "display.h"
 #include "config.h"
 #include "CO5300.h"
+#include <Arduino.h>
 
 static CO5300 *lcd = nullptr;
 
