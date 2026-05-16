@@ -1,0 +1,10 @@
+# Server
+server/node_modules/
+server/.env
+
+# Firmware
+firmware/.pio/
+firmware/.vscode/
+
+# macOS
+.DS_Store
