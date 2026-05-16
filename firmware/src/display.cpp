@@ -1,30 +1,22 @@
 #include "display.h"
 #include "config.h"
-#include <Arduino_GFX_Library.h>
+#include "CO5300.h"
 
-static Arduino_DataBus *bus = nullptr;
-static Arduino_GFX    *gfx = nullptr;
+static CO5300 *lcd = nullptr;
 
 void display_init() {
-    // QSPI bus — four data lines for high-speed AMOLED transfer
-    bus = new Arduino_ESP32QSPI(
-        LCD_CS, LCD_SCLK, LCD_D0, LCD_D1, LCD_D2, LCD_D3);
-
-    // CO5300 driver — 466×466 round AMOLED, no backlight pin needed
-    // If this class is missing, install Waveshare's GFX fork:
-    //   https://github.com/waveshareteam/Arduino_GFX (see README)
-    gfx = new Arduino_CO5300(bus, LCD_RST, 0 /* rotation */, false, LCD_W, LCD_H);
-
-    if (!gfx->begin(80000000)) {
-        Serial.println("[display] begin() failed — check wiring and library");
+    lcd = new CO5300(LCD_CS, LCD_SCLK, LCD_D0, LCD_D1, LCD_D2, LCD_D3, LCD_RST, LCD_W, LCD_H);
+    if (!lcd->begin(40000000)) {
+        Serial.println("[display] CO5300 init failed — check wiring and config.h pins");
         while (1) delay(1000);
     }
-    gfx->fillScreen(BLACK);
+    Serial.println("[display] CO5300 ready");
 }
 
 void display_flush(lv_disp_drv_t *drv, const lv_area_t *area, lv_color_t *color_p) {
-    uint32_t w = area->x2 - area->x1 + 1;
-    uint32_t h = area->y2 - area->y1 + 1;
-    gfx->draw16bitRGBBitmap(area->x1, area->y1, (uint16_t *)color_p, w, h);
+    uint16_t x0 = area->x1, y0 = area->y1;
+    uint16_t x1 = area->x2, y1 = area->y2;
+    lcd->setWindow(x0, y0, x1, y1);
+    lcd->pushColors((uint16_t *)color_p, (uint32_t)(x1 - x0 + 1) * (y1 - y0 + 1));
     lv_disp_flush_ready(drv);
 }
