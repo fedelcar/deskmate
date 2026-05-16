@@ -149,10 +149,10 @@ static void build_main(lv_obj_t *scr) {
     lv_obj_set_style_arc_width(arc_claude, 5, LV_PART_INDICATOR);
     lv_obj_set_style_arc_width(arc_claude, 5, LV_PART_MAIN);
     lv_obj_clear_flag(arc_claude, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_align(arc_claude, LV_ALIGN_BOTTOM_RIGHT, -44, -44);
+    lv_obj_align(arc_claude, LV_ALIGN_BOTTOM_RIGHT, -91, -91);
 
     lbl_claude = make_label(scr, &lv_font_montserrat_12, CLR_ORANGE);
-    lv_obj_align(lbl_claude, LV_ALIGN_BOTTOM_RIGHT, -44, -118);
+    lv_obj_align(lbl_claude, LV_ALIGN_BOTTOM_RIGHT, -91, -165);
 }
 
 // ─── Screen 1: Weather detail ─────────────────────────────────────────────────
@@ -262,22 +262,21 @@ void ui_update(JsonDocument &doc) {
         int hum   = w["humidity"]   | 0;
         int wind  = w["wind_speed"] | 0;
 
-        // \xC2\xB0 = UTF-8 degree sign (U+00B0)
-        snprintf(buf, sizeof(buf), "%d\xC2\xB0%s  %s", temp, deg, icon_str(icon));
+        snprintf(buf, sizeof(buf), "%d%s %s", temp, deg, icon_str(icon));
         lv_label_set_text(lbl_temp, buf);
         lv_obj_set_style_text_color(lbl_temp, icon_color(icon), 0);
 
         const char *desc = w["description"] | "";
         lv_label_set_text(lbl_weather_desc, desc);
 
-        snprintf(buf, sizeof(buf), "H %d\xC2\xB0  L %d\xC2\xB0", high, low);
+        snprintf(buf, sizeof(buf), "H %d  L %d", high, low);
         lv_label_set_text(lbl_hilo, buf);
 
         // Weather detail screen
-        snprintf(buf, sizeof(buf), "%d\xC2\xB0%s", temp, deg);
+        snprintf(buf, sizeof(buf), "%d%s", temp, deg);
         lv_label_set_text(lbl_w_main_temp, buf);
         lv_label_set_text(lbl_w_desc, desc);
-        snprintf(buf, sizeof(buf), "H%d\xC2\xB0 L%d\xC2\xB0  Hum %d%%  Wind %d",
+        snprintf(buf, sizeof(buf), "H%d L%d  Hum %d%%  Wind %d",
                  high, low, hum, wind);
         lv_label_set_text(lbl_w_details, buf);
 
@@ -287,7 +286,7 @@ void ui_update(JsonDocument &doc) {
             if (count >= 8) break;
             char tbuf[8];
             fmt_time(tbuf, sizeof(tbuf), (long long)(h["time"] | 0LL));
-            snprintf(buf, sizeof(buf), "%d\xC2\xB0", (int)(h["temp"] | 0));
+            snprintf(buf, sizeof(buf), "%d", (int)(h["temp"] | 0));
             lv_label_set_text(lbl_w_hours[count], buf);
             lv_label_set_text(lbl_w_hour_times[count], tbuf);
             count++;
