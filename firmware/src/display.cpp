@@ -12,11 +12,18 @@ void display_init() {
         while (1) delay(1000);
     }
     Serial.println("[display] CO5300 ready");
+
+    // Hardware test: fill blue then black to confirm SPI path
+    lcd->fillScreen(0x001F);  // blue
+    delay(800);
+    lcd->fillScreen(0x0000);  // black (ready for LVGL)
+    Serial.println("[display] test pattern done");
 }
 
 void display_flush(lv_disp_drv_t *drv, const lv_area_t *area, lv_color_t *color_p) {
     uint16_t x0 = area->x1, y0 = area->y1;
     uint16_t x1 = area->x2, y1 = area->y2;
+    Serial.printf("[flush] (%d,%d)->(%d,%d)\n", x0, y0, x1, y1);
     lcd->setWindow(x0, y0, x1, y1);
     lcd->pushColors((uint16_t *)color_p, (uint32_t)(x1 - x0 + 1) * (y1 - y0 + 1));
     lv_disp_flush_ready(drv);

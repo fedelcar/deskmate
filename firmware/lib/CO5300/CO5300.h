@@ -14,6 +14,7 @@ public:
     bool begin(uint32_t freq = 40000000);
     void setWindow(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1);
     void pushColors(uint16_t *colors, uint32_t len);
+    void fillScreen(uint16_t color);  // debug: solid fill
 
     uint16_t width()  const { return _w; }
     uint16_t height() const { return _h; }

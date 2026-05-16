@@ -99,9 +99,10 @@ void setup() {
     Serial.printf("[wifi] Connecting to %s\n", WIFI_SSID);
     WiFi.begin(WIFI_SSID, WIFI_PASS);
     int tries = 0;
-    while (WiFi.status() != WL_CONNECTED && tries < 40) {
+    while (WiFi.status() != WL_CONNECTED && tries < 60) {
         lv_timer_handler();
         delay(500);
+        if (tries % 10 == 9) Serial.printf("[wifi] still trying... (%d)\n", tries + 1);
         tries++;
     }
 

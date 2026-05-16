@@ -101,6 +101,16 @@ void CO5300::setWindow(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1) {
     qspiWrite(0x2B, ra, 4);
 }
 
+void CO5300::fillScreen(uint16_t color) {
+    static uint16_t row[466];
+    for (int i = 0; i < _w; i++) row[i] = color;
+    setWindow(0, 0, _w - 1, _h - 1);
+    qspiWrite(0x2C, row, _w * sizeof(uint16_t));
+    for (int y = 1; y < _h; y++) {
+        qspiWrite(0x3C, row, _w * sizeof(uint16_t));
+    }
+}
+
 void CO5300::pushColors(uint16_t *colors, uint32_t len) {
     // Split into CO5300_CHUNK_PX-pixel chunks.
     // First chunk uses RAMWR (0x2C), subsequent ones use RAMWRC (0x3C)
