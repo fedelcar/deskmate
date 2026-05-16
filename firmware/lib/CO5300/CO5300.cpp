@@ -20,8 +20,9 @@ CO5300::CO5300(int8_t cs, int8_t sclk, int8_t d0, int8_t d1, int8_t d2, int8_t d
 
 esp_err_t CO5300::qspiWrite(uint8_t reg, const void *data, size_t len) {
     spi_transaction_ext_t t = {};
+    // 4-4-4 mode: instruction, address, and data all on 4 wires (matches Waveshare Arduino_GFX driver)
     t.base.flags = SPI_TRANS_VARIABLE_CMD | SPI_TRANS_VARIABLE_ADDR |
-                   SPI_TRANS_MODE_QIO     | SPI_TRANS_MODE_DIOQIO_ADDR;
+                   SPI_TRANS_MODE_QIO | SPI_TRANS_MULTILINE_CMD | SPI_TRANS_MULTILINE_ADDR;
     t.command_bits = 8;
     t.address_bits = 24;
     t.base.cmd       = 0x02;
