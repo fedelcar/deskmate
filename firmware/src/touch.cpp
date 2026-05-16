@@ -9,7 +9,17 @@
 static uint16_t touch_x = 0, touch_y = 0;
 static bool     touch_pressed = false;
 
+static void cst9217_wake() {
+    // Toggle INT low briefly to wake the IC from low-power mode
+    pinMode(TOUCH_INT, OUTPUT);
+    digitalWrite(TOUCH_INT, LOW);
+    delayMicroseconds(5);
+    pinMode(TOUCH_INT, INPUT_PULLUP);
+    delayMicroseconds(50);
+}
+
 static bool cst9217_read_raw() {
+    cst9217_wake();
     Wire.beginTransmission(TOUCH_ADDR);
     Wire.write(CST9217_TOUCH_DATA);
     if (Wire.endTransmission(false) != 0) return false;
@@ -33,15 +43,24 @@ static bool cst9217_read_raw() {
 void touch_init() {
     Wire.begin(TOUCH_SDA, TOUCH_SCL, 400000);
 
-    if (TOUCH_INT >= 0) {
-        pinMode(TOUCH_INT, INPUT_PULLUP);
-    }
     if (TOUCH_RST >= 0) {
         pinMode(TOUCH_RST, OUTPUT);
         digitalWrite(TOUCH_RST, LOW);
         delay(20);
         digitalWrite(TOUCH_RST, HIGH);
-        delay(100);
+        delay(200);  // extra settle time
+    }
+    if (TOUCH_INT >= 0) {
+        pinMode(TOUCH_INT, INPUT_PULLUP);
+    }
+
+    // I2C scan — logs any device found
+    Serial.println("[touch] I2C scan:");
+    for (uint8_t addr = 1; addr < 127; addr++) {
+        Wire.beginTransmission(addr);
+        if (Wire.endTransmission() == 0) {
+            Serial.printf("[touch]   found 0x%02X\n", addr);
+        }
     }
 }
 
