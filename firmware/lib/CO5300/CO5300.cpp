@@ -108,6 +108,8 @@ bool CO5300::begin(uint32_t freq) {
 }
 
 // x_gap=6: hardware pixel offset on this Waveshare panel
+// RAMWR (0x2C) resets the internal write pointer to (x0,y0) so subsequent
+// pixel bursts start at the right position regardless of prior writes.
 void CO5300::setWindow(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1) {
     x0 += CO5300_X_GAP;
     x1 += CO5300_X_GAP;
@@ -115,6 +117,7 @@ void CO5300::setWindow(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1) {
     uint8_t ra[] = {(uint8_t)(y0>>8), (uint8_t)y0, (uint8_t)(y1>>8), (uint8_t)y1};
     qspiReg(0x2A, ca, 4);
     qspiReg(0x2B, ra, 4);
+    qspiReg(0x2C, nullptr, 0);  // RAMWR: set write pointer to start of window
 }
 
 // Pixel write: instruction 0x32, QIO mode, CS held for entire burst.

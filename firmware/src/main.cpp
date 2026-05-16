@@ -57,7 +57,8 @@ static void fetch_and_update() {
         char msg[32];
         snprintf(msg, sizeof(msg), "HTTP %d", code);
         ui_set_status(msg);
-        Serial.printf("[fetch] HTTP %d from %s\n", code, url);
+        Serial.printf("[fetch] HTTP %d (%s) from %s\n", code,
+                      http.errorToString(code).c_str(), url);
     }
     http.end();
     last_fetch = millis();
@@ -114,7 +115,9 @@ void setup() {
     while (WiFi.status() != WL_CONNECTED && tries < 60) {
         lv_timer_handler();
         delay(500);
-        if (tries % 10 == 9) Serial.printf("[wifi] still trying... (%d)\n", tries + 1);
+        if (tries % 10 == 9) {
+            Serial.printf("[wifi] still trying... (%d) status=%d\n", tries + 1, (int)WiFi.status());
+        }
         tries++;
     }
 
