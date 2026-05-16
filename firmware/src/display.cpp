@@ -1,7 +1,11 @@
 #include "display.h"
 #include "config.h"
 #include <Arduino.h>
-#include <Arduino_GFX_Library.h>
+// Selective Arduino_GFX includes — avoids Arduino_ESP32SPI.h which requires
+// esp32-hal-periman.h (added in Arduino-ESP32 2.0.3, not in current platform)
+#include <Arduino_GFX.h>
+#include <databus/Arduino_ESP32QSPI.h>
+#include <display/Arduino_CO5300.h>
 
 static Arduino_DataBus *bus = nullptr;
 static Arduino_GFX     *gfx = nullptr;
@@ -18,7 +22,7 @@ void display_init() {
     }
     Serial.println("[display] CO5300 ready");
 
-    // Hardware test: red flash confirms display and SPI are alive
+    // Hardware test: red flash confirms display and SPI path are alive
     gfx->fillScreen(RED);
     delay(800);
     gfx->fillScreen(BLACK);
@@ -30,7 +34,7 @@ void display_flush(lv_disp_drv_t *drv, const lv_area_t *area, lv_color_t *color_
     uint16_t h = area->y2 - area->y1 + 1;
     gfx->startWrite();
     gfx->setAddrWindow(area->x1, area->y1, w, h);
-    // LV_COLOR_16_SWAP=1 → buffer is big-endian; pass false so GFX doesn't double-swap
+    // LV_COLOR_16_SWAP=1 makes LVGL buffer big-endian; pass false so GFX doesn't double-swap
     gfx->writePixels((uint16_t *)color_p, (uint32_t)w * h, false);
     gfx->endWrite();
     lv_disp_flush_ready(drv);
