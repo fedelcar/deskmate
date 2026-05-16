@@ -1,5 +1,6 @@
 #include "touch.h"
 #include "config.h"
+#include <Arduino.h>
 #include <Wire.h>
 
 // CST9217 register map (I2C, addr 0x1A)
