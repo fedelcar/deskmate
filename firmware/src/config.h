@@ -1,7 +1,7 @@
 #pragma once
 
 // ─── WiFi ────────────────────────────────────────────────────────────────────
-#define WIFI_SSID   "freebox-flc"
+#define WIFI_SSID   "freebox_flc"
 #define WIFI_PASS   "wififede"
 
 // ─── Server ──────────────────────────────────────────────────────────────────
