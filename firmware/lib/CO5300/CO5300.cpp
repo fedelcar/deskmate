@@ -80,6 +80,7 @@ bool CO5300::begin(uint32_t freq) {
 
     uint8_t pf = 0x55;  qspiWrite(0x3A, &pf, 1);  // Pixel format: RGB565
     uint8_t te = 0x00;  qspiWrite(0x35, &te, 1);  // Tearing effect ON
+    uint8_t wr = 0x20;  qspiWrite(0x53, &wr, 1);  // Write Control Display (enable brightness block)
     uint8_t br = 0xFF;  qspiWrite(0x51, &br, 1);  // Max brightness
 
     // Full-screen window

@@ -26,8 +26,18 @@ static unsigned long last_fetch = 0;
 static void fetch_and_update() {
     ui_set_status("Updating...");
 
+    // mDNS resolution: HTTPClient doesn't resolve .local via mDNS automatically
+    char host[40];
+    IPAddress ip = MDNS.queryHost("deskmate", 2000);
+    if (ip != INADDR_NONE) {
+        ip.toString().toCharArray(host, sizeof(host));
+    } else {
+        strncpy(host, SERVER_HOST, sizeof(host));
+        Serial.printf("[fetch] mDNS failed, using %s\n", host);
+    }
+
     char url[128];
-    snprintf(url, sizeof(url), "http://%s:%d/api/all", SERVER_HOST, SERVER_PORT);
+    snprintf(url, sizeof(url), "http://%s:%d/api/all", host, SERVER_PORT);
 
     HTTPClient http;
     http.begin(url);
