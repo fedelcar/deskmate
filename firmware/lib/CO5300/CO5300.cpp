@@ -1,22 +1,44 @@
 #include "CO5300.h"
 #include <Arduino.h>
 #include "driver/spi_master.h"
-#include "esp_lcd_panel_io.h"
 
-// CO5300 QSPI command encoding:
-//   byte[0] = 0x02  (write instruction)
-//   byte[1] = 0x00  (address high)
-//   byte[2] = reg   (address low — MIPI DCS register)
-//   byte[3] = 0x00  (padding)
-// Encoded as a single 32-bit integer sent MSB-first.
-#define CO5300_CMD(reg)  (int)(((uint32_t)0x02 << 24) | ((uint32_t)(reg) << 8))
+// CO5300 QSPI write protocol:
+//   [0x02]  instruction byte   — 8 bits, single wire
+//   [0x00]  addr bits 23:16    \
+//   [reg ]  addr bits 15:8      > 24-bit address, quad wire
+//   [0x00]  addr bits  7:0    /
+//   [data…] payload            — quad wire
+//
+// Encoded in spi_transaction_ext_t:
+//   command_bits=8, cmd=0x02
+//   address_bits=24, addr=(reg<<8)   →  wire: 0x00, reg, 0x00
+//   tx_buffer = payload
 
 CO5300::CO5300(int8_t cs, int8_t sclk, int8_t d0, int8_t d1, int8_t d2, int8_t d3,
                int8_t rst, uint16_t w, uint16_t h)
     : _cs(cs), _sclk(sclk), _d0(d0), _d1(d1), _d2(d2), _d3(d3), _rst(rst), _w(w), _h(h) {}
 
+esp_err_t CO5300::qspiWrite(uint8_t reg, const void *data, size_t len) {
+    spi_transaction_ext_t t = {};
+    t.base.flags = SPI_TRANS_VARIABLE_CMD | SPI_TRANS_VARIABLE_ADDR |
+                   SPI_TRANS_MODE_QIO     | SPI_TRANS_MODE_DIOQIO_ADDR;
+    t.command_bits = 8;
+    t.address_bits = 24;
+    t.base.cmd       = 0x02;
+    t.base.addr      = (uint32_t)reg << 8;  // e.g. 0x001100 for reg 0x11
+    t.base.tx_buffer = data;
+    t.base.length    = len * 8;
+    t.base.rxlength  = 0;
+
+    // polling for small writes (≤32 B), DMA-capable transmit for pixel bursts
+    if (len <= 32) {
+        return spi_device_polling_transmit(_spi, (spi_transaction_t *)&t);
+    }
+    return spi_device_transmit(_spi, (spi_transaction_t *)&t);
+}
+
 bool CO5300::begin(uint32_t freq) {
-    // Hardware reset
+    // ── Hardware reset ────────────────────────────────────────────────────────
     if (_rst >= 0) {
         pinMode(_rst, OUTPUT);
         digitalWrite(_rst, HIGH); delay(10);
@@ -24,76 +46,62 @@ bool CO5300::begin(uint32_t freq) {
         digitalWrite(_rst, HIGH); delay(120);
     }
 
-    // ── QSPI bus ─────────────────────────────────────────────────────────────
-    // On ESP32-S3:  mosi=D0, miso=D1, quadwp=D2, quadhd=D3
+    // ── SPI bus (QSPI: mosi=D0, miso=D1, wp=D2, hd=D3) ──────────────────────
     spi_bus_config_t bus = {};
     bus.mosi_io_num   = _d0;
     bus.miso_io_num   = _d1;
     bus.sclk_io_num   = _sclk;
     bus.quadwp_io_num = _d2;
     bus.quadhd_io_num = _d3;
-    bus.max_transfer_sz = _w * 80 * sizeof(uint16_t); // matches LVGL buffer
-    bus.flags = SPICOMMON_BUSFLAG_QUAD;
+    bus.max_transfer_sz = (int)(_w * 80 * sizeof(uint16_t)); // 80 LVGL buffer lines
 
     esp_err_t r = spi_bus_initialize(SPI2_HOST, &bus, SPI_DMA_CH_AUTO);
     if (r != ESP_OK && r != ESP_ERR_INVALID_STATE) {
-        Serial.printf("[CO5300] SPI bus init failed: %d\n", r);
+        Serial.printf("[CO5300] bus init: %d\n", r);
         return false;
     }
 
-    // ── Panel IO (QSPI, 32-bit cmd, 8-bit data) ───────────────────────────
-    esp_lcd_panel_io_spi_config_t io = {};
-    io.cs_gpio_num       = _cs;
-    io.dc_gpio_num       = -1;  // no DC pin; cmd/data distinguished by protocol
-    io.spi_mode          = 0;
-    io.pclk_hz           = freq;
-    io.trans_queue_depth = 10;
-    io.lcd_cmd_bits      = 32;
-    io.lcd_param_bits    = 8;
-    io.flags.quad_mode   = true;
+    // ── SPI device ───────────────────────────────────────────────────────────
+    spi_device_interface_config_t dev = {};
+    dev.clock_speed_hz = (int)freq;
+    dev.mode           = 0;
+    dev.spics_io_num   = _cs;
+    dev.queue_size     = 7;
+    dev.flags          = SPI_DEVICE_HALFDUPLEX;
 
-    r = esp_lcd_new_panel_io_spi((esp_lcd_spi_bus_handle_t)SPI2_HOST, &io, &_io);
+    r = spi_bus_add_device(SPI2_HOST, &dev, &_spi);
     if (r != ESP_OK) {
-        Serial.printf("[CO5300] panel IO init failed: %d\n", r);
+        Serial.printf("[CO5300] add device: %d\n", r);
         return false;
     }
 
-    // ── Init sequence (MIPI DCS) ─────────────────────────────────────────
-    sendCmd(0x11);           delay(120); // Sleep out
-    uint8_t pf = 0x55;
-    sendCmdData(0x3A, &pf, 1);           // Pixel format: RGB565
-    uint8_t te = 0x00;
-    sendCmdData(0x35, &te, 1);           // Tearing effect line ON
-    uint8_t br = 0xFF;
-    sendCmdData(0x51, &br, 1);           // Max brightness
+    // ── Init sequence (MIPI DCS) ─────────────────────────────────────────────
+    qspiWrite(0x11, nullptr, 0); delay(120);  // Sleep out
 
-    // Set full-screen window once so RAMWR knows the address range
+    uint8_t pf = 0x55;  qspiWrite(0x3A, &pf, 1);  // Pixel format: RGB565
+    uint8_t te = 0x00;  qspiWrite(0x35, &te, 1);  // Tearing effect ON
+    uint8_t br = 0xFF;  qspiWrite(0x51, &br, 1);  // Max brightness
+
+    // Full-screen window
     uint8_t ca[] = {0x00, 0x00, (uint8_t)((_w-1)>>8), (uint8_t)(_w-1)};
     uint8_t ra[] = {0x00, 0x00, (uint8_t)((_h-1)>>8), (uint8_t)(_h-1)};
-    sendCmdData(0x2A, ca, 4);
-    sendCmdData(0x2B, ra, 4);
+    qspiWrite(0x2A, ca, 4);
+    qspiWrite(0x2B, ra, 4);
 
-    sendCmd(0x29);           delay(20);  // Display on
+    qspiWrite(0x29, nullptr, 0); delay(20);  // Display on
 
+    Serial.println("[CO5300] init OK");
     return true;
-}
-
-void CO5300::sendCmd(uint8_t reg) {
-    esp_lcd_panel_io_tx_param(_io, CO5300_CMD(reg), nullptr, 0);
-}
-
-void CO5300::sendCmdData(uint8_t reg, const uint8_t *data, size_t len) {
-    esp_lcd_panel_io_tx_param(_io, CO5300_CMD(reg), data, len);
 }
 
 void CO5300::setWindow(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1) {
     uint8_t ca[] = {(uint8_t)(x0>>8), (uint8_t)x0, (uint8_t)(x1>>8), (uint8_t)x1};
     uint8_t ra[] = {(uint8_t)(y0>>8), (uint8_t)y0, (uint8_t)(y1>>8), (uint8_t)y1};
-    sendCmdData(0x2A, ca, 4);
-    sendCmdData(0x2B, ra, 4);
+    qspiWrite(0x2A, ca, 4);
+    qspiWrite(0x2B, ra, 4);
 }
 
 void CO5300::pushColors(uint16_t *colors, uint32_t len) {
-    // Send RAMWR (0x2C) + pixel data in one QSPI transaction
-    esp_lcd_panel_io_tx_color(_io, CO5300_CMD(0x2C), colors, len * sizeof(uint16_t));
+    // RAMWR (0x2C) + pixel data in one transaction — CS held low throughout
+    qspiWrite(0x2C, colors, len * sizeof(uint16_t));
 }
