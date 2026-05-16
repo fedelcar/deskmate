@@ -46,6 +46,8 @@ static lv_obj_t *lbl_event_times[5];
 // Status banner (loading / errors)
 static lv_obj_t *lbl_status;
 
+static lv_timer_t *clock_timer = nullptr;
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 static lv_style_t style_screen;
 
@@ -194,6 +196,19 @@ static void build_calendar(lv_obj_t *scr) {
 }
 
 // ─── Public API ───────────────────────────────────────────────────────────────
+void ui_update_clock() {
+    time_t now = time(nullptr);
+    if (now < 100000) return;  // NTP not synced yet
+    struct tm *t = localtime(&now);
+    char buf[32];
+    strftime(buf, sizeof(buf), "%H:%M", t);   // 24h — standard in France
+    lv_label_set_text(lbl_time, buf);
+    strftime(buf, sizeof(buf), "%a, %b %d", t);
+    lv_label_set_text(lbl_date, buf);
+}
+
+static void clock_tick_cb(lv_timer_t *) { ui_update_clock(); }
+
 void ui_init() {
     lv_style_init(&style_screen);
     lv_style_set_bg_color(&style_screen, CLR_BG);
@@ -220,6 +235,8 @@ void ui_init() {
     lv_label_set_text(lbl_status, "Connecting...");
 
     lv_disp_load_scr(screens[0]);
+
+    clock_timer = lv_timer_create(clock_tick_cb, 10000, nullptr);  // update every 10 s
 }
 
 void ui_set_status(const char *msg) {
@@ -228,16 +245,8 @@ void ui_set_status(const char *msg) {
 
 void ui_update(JsonDocument &doc) {
     // ── Time & date (always live) ────────────────────────────────────────────
-    time_t now = time(nullptr);
-    struct tm *t = localtime(&now);
+    ui_update_clock();
     char buf[64];
-
-    strftime(buf, sizeof(buf), "%I:%M", t);
-    if (buf[0] == '0') memmove(buf, buf + 1, strlen(buf)); // no leading zero
-    lv_label_set_text(lbl_time, buf);
-
-    strftime(buf, sizeof(buf), "%a, %b %d", t);
-    lv_label_set_text(lbl_date, buf);
 
     // ── Weather ──────────────────────────────────────────────────────────────
     JsonObject w = doc["weather"];
