@@ -1,8 +1,8 @@
 #pragma once
 
 // ─── WiFi ────────────────────────────────────────────────────────────────────
-#define WIFI_SSID   "your_wifi_ssid"
-#define WIFI_PASS   "your_wifi_password"
+#define WIFI_SSID   "freebox-flc"
+#define WIFI_PASS   "wififede"
 
 // ─── Server ──────────────────────────────────────────────────────────────────
 // mDNS hostname advertised by the Node server ("deskmate.local")

@@ -131,7 +131,7 @@ void setup() {
     // 8. NTP (for localtime() in UI)
     configTime(0, 0, "pool.ntp.org");
     // timezone: set your UTC offset here, e.g. -5*3600 for EST, -8*3600 for PST
-    setenv("TZ", "EST5EDT,M3.2.0,M11.1.0", 1);
+    setenv("TZ", "CET-1CEST,M3.5.0,M10.5.0/3", 1); // Europe/Paris
     tzset();
     Serial.println("[ntp] Syncing...");
 
