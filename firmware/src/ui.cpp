@@ -129,7 +129,7 @@ static void build_main(lv_obj_t *scr) {
     lv_obj_align(lbl_weather_desc, LV_ALIGN_CENTER, 0, 2);
 
     // High / Low — below description, extra gap to avoid overlap
-    lbl_hilo = make_label(scr, &lv_font_montserrat_12, CLR_GRAY);
+    lbl_hilo = make_label(scr, &lv_font_montserrat_14, CLR_CYAN);
     lv_obj_align(lbl_hilo, LV_ALIGN_CENTER, 0, 38);
 
     // Next event "in Xh Ym" — lower area
@@ -266,7 +266,7 @@ void ui_update(JsonDocument &doc) {
         int hum   = w["humidity"]   | 0;
         int wind  = w["wind_speed"] | 0;
 
-        snprintf(buf, sizeof(buf), "%d%s %s", temp, deg, icon_str(icon));
+        snprintf(buf, sizeof(buf), "%d\xC2\xB0%s %s", temp, deg, icon_str(icon));
         lv_label_set_text(lbl_temp, buf);
         lv_obj_set_style_text_color(lbl_temp, icon_color(icon), 0);
 
@@ -274,14 +274,14 @@ void ui_update(JsonDocument &doc) {
         strip_nonascii(desc_buf, sizeof(desc_buf), w["description"] | "");
         lv_label_set_text(lbl_weather_desc, desc_buf);
 
-        snprintf(buf, sizeof(buf), "H %d  L %d", high, low);
+        snprintf(buf, sizeof(buf), "H %d\xC2\xB0  L %d\xC2\xB0", high, low);
         lv_label_set_text(lbl_hilo, buf);
 
         // Weather detail screen
-        snprintf(buf, sizeof(buf), "%d%s", temp, deg);
+        snprintf(buf, sizeof(buf), "%d\xC2\xB0%s", temp, deg);
         lv_label_set_text(lbl_w_main_temp, buf);
         lv_label_set_text(lbl_w_desc, desc_buf);
-        snprintf(buf, sizeof(buf), "H%d L%d  Hum %d%%  Wind %d",
+        snprintf(buf, sizeof(buf), "H%d\xC2\xB0 L%d\xC2\xB0  Hum %d%%  Wind %d",
                  high, low, hum, wind);
         lv_label_set_text(lbl_w_details, buf);
 
@@ -291,7 +291,7 @@ void ui_update(JsonDocument &doc) {
             if (count >= 8) break;
             char tbuf[8];
             fmt_time(tbuf, sizeof(tbuf), (long long)(h["time"] | 0LL));
-            snprintf(buf, sizeof(buf), "%d", (int)(h["temp"] | 0));
+            snprintf(buf, sizeof(buf), "%d\xC2\xB0", (int)(h["temp"] | 0));
             lv_label_set_text(lbl_w_hours[count], buf);
             lv_label_set_text(lbl_w_hour_times[count], tbuf);
             count++;
