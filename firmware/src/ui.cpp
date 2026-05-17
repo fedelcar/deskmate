@@ -52,6 +52,8 @@ static lv_obj_t *make_label(lv_obj_t *parent, const lv_font_t *font,
     lv_obj_set_style_text_font(l, font, 0);
     lv_obj_set_style_text_color(l, color, 0);
     lv_obj_set_style_text_align(l, align, 0);
+    lv_obj_set_style_bg_opa(l, LV_OPA_TRANSP, 0);
+    lv_obj_set_style_pad_all(l, 0, 0);
     lv_label_set_text(l, "");
     return l;
 }
@@ -118,15 +120,17 @@ static void build_main(lv_obj_t *scr) {
 
     // Weather temp + icon — center
     lbl_temp = make_label(scr, &lv_font_montserrat_28, CLR_YELLOW);
-    lv_obj_align(lbl_temp, LV_ALIGN_CENTER, 0, -35);
+    lv_obj_align(lbl_temp, LV_ALIGN_CENTER, 0, -38);
 
     // Weather description — just below temp
     lbl_weather_desc = make_label(scr, &lv_font_montserrat_14, CLR_GRAY);
-    lv_obj_align(lbl_weather_desc, LV_ALIGN_CENTER, 0, 5);
+    lv_label_set_long_mode(lbl_weather_desc, LV_LABEL_LONG_DOT);
+    lv_obj_set_width(lbl_weather_desc, 220);
+    lv_obj_align(lbl_weather_desc, LV_ALIGN_CENTER, 0, 2);
 
-    // High / Low — below description
+    // High / Low — below description, extra gap to avoid overlap
     lbl_hilo = make_label(scr, &lv_font_montserrat_12, CLR_GRAY);
-    lv_obj_align(lbl_hilo, LV_ALIGN_CENTER, 0, 26);
+    lv_obj_align(lbl_hilo, LV_ALIGN_CENTER, 0, 38);
 
     // Next event "in Xh Ym" — lower area
     lbl_event_time = make_label(scr, &lv_font_montserrat_12, CLR_CYAN);
@@ -266,8 +270,9 @@ void ui_update(JsonDocument &doc) {
         lv_label_set_text(lbl_temp, buf);
         lv_obj_set_style_text_color(lbl_temp, icon_color(icon), 0);
 
-        const char *desc = w["description"] | "";
-        lv_label_set_text(lbl_weather_desc, desc);
+        char desc_buf[48];
+        strip_nonascii(desc_buf, sizeof(desc_buf), w["description"] | "");
+        lv_label_set_text(lbl_weather_desc, desc_buf);
 
         snprintf(buf, sizeof(buf), "H %d  L %d", high, low);
         lv_label_set_text(lbl_hilo, buf);
@@ -275,7 +280,7 @@ void ui_update(JsonDocument &doc) {
         // Weather detail screen
         snprintf(buf, sizeof(buf), "%d%s", temp, deg);
         lv_label_set_text(lbl_w_main_temp, buf);
-        lv_label_set_text(lbl_w_desc, desc);
+        lv_label_set_text(lbl_w_desc, desc_buf);
         snprintf(buf, sizeof(buf), "H%d L%d  Hum %d%%  Wind %d",
                  high, low, hum, wind);
         lv_label_set_text(lbl_w_details, buf);
