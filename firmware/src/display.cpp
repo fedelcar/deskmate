@@ -20,6 +20,10 @@ void display_init() {
     Serial.println("[display] test pattern done");
 }
 
+void display_set_brightness(uint8_t level) {
+    lcd->setBrightness(level);
+}
+
 void display_flush(lv_disp_drv_t *drv, const lv_area_t *area, lv_color_t *color_p) {
     uint16_t x0 = area->x1, y0 = area->y1;
     uint16_t x1 = area->x2, y1 = area->y2;

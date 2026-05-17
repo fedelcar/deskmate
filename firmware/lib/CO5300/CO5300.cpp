@@ -154,6 +154,10 @@ void CO5300::pushColors(uint16_t *colors, uint32_t len) {
     csHigh();
 }
 
+void CO5300::setBrightness(uint8_t level) {
+    qspiReg(0x51, &level, 1);
+}
+
 void CO5300::fillScreen(uint16_t color) {
     Serial.printf("[CO5300] fillScreen 0x%04X\n", color);
     uint16_t sw = __builtin_bswap16(color);

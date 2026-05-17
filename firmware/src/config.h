@@ -30,6 +30,12 @@
 #define TOUCH_RST   40
 #define TOUCH_ADDR  0x1A
 
+// ─── Buttons  (Waveshare ESP32-S3-Touch-AMOLED-1.75) ────────────────────────
+// BOOT button (active LOW) — short press: next screen
+#define BUTTON1_PIN  0
+// PA/KEY2 pin — short press: cycle brightness
+#define BUTTON2_PIN  46
+
 // ─── LVGL ────────────────────────────────────────────────────────────────────
 // Two full-screen draw buffers in PSRAM for tear-free rendering
 #define LV_BUF_LINES  80    // lines per buffer (80 × 466 × 2 bytes ≈ 74 KB each)

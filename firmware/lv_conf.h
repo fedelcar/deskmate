@@ -73,7 +73,7 @@
 /*====================
    THEMES
  *====================*/
-#define LV_USE_THEME_DEFAULT 1
+#define LV_USE_THEME_DEFAULT 0
 #define LV_THEME_DEFAULT_DARK 1
 
 #endif /* LV_CONF_H */

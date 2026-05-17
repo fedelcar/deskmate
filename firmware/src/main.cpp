@@ -23,6 +23,59 @@ static lv_indev_drv_t indev_drv;
 // ─── Data fetch ──────────────────────────────────────────────────────────────
 static unsigned long last_fetch = 0;
 
+// ─── Brightness cycling ───────────────────────────────────────────────────────
+static const uint8_t kBrightnessLevels[] = {255, 160, 80, 20};
+static const int     kNumBrightness = 4;
+static int           brightness_idx = 0;
+
+// ─── Button state ─────────────────────────────────────────────────────────────
+struct ButtonState {
+    bool     last_raw   = true;   // active-LOW: idle = HIGH = true
+    bool     pressed    = false;
+    unsigned long press_start = 0;
+    unsigned long last_event  = 0;
+};
+static ButtonState btn1, btn2;
+
+static const unsigned long DEBOUNCE_MS = 50;
+
+static void poll_button(ButtonState &b, int pin,
+                        void (*on_press)()) {
+    bool raw = digitalRead(pin);  // LOW when pressed (active-low)
+    unsigned long now = millis();
+
+    if (raw == b.last_raw) return;  // no change
+    b.last_raw = raw;
+
+    if (!raw) {
+        // Falling edge: button just pressed
+        if (now - b.last_event > DEBOUNCE_MS) {
+            b.pressed = true;
+            b.press_start = now;
+        }
+    } else {
+        // Rising edge: button released
+        if (b.pressed) {
+            b.pressed = false;
+            b.last_event = now;
+            on_press();
+        }
+    }
+}
+
+static void on_btn1() {
+    Serial.println("[btn1] next screen");
+    ui_next_screen();
+}
+
+static void on_btn2() {
+    brightness_idx = (brightness_idx + 1) % kNumBrightness;
+    uint8_t level = kBrightnessLevels[brightness_idx];
+    Serial.printf("[btn2] brightness -> %d\n", level);
+    display_set_brightness(level);
+}
+
+// ─── Data fetch ──────────────────────────────────────────────────────────────
 static void fetch_and_update() {
     ui_set_status("Updating...");
 
@@ -67,8 +120,12 @@ static void fetch_and_update() {
 // ─── Setup ───────────────────────────────────────────────────────────────────
 void setup() {
     Serial.begin(115200);
-    delay(3000); // wait for serial monitor to attach
+    delay(3000);
     Serial.println("\n=== Deskmate booting ===");
+
+    // Buttons — internal pull-up, active LOW
+    pinMode(BUTTON1_PIN, INPUT_PULLUP);
+    pinMode(BUTTON2_PIN, INPUT_PULLUP);
 
     // 1. Display
     display_init();
@@ -98,15 +155,12 @@ void setup() {
     indev_drv.read_cb = touch_read;
     lv_indev_drv_register(&indev_drv);
 
-    // 4. LVGL tick is driven by LV_TICK_CUSTOM in lv_conf.h (calls millis())
-    //    No manual timer needed.
-
-    // 5. Build UI
+    // 4. Build UI
     ui_init();
     ui_set_status("Connecting WiFi...");
     lv_timer_handler();
 
-    // 6. WiFi
+    // 5. WiFi
     Serial.printf("[wifi] Connecting to %s\n", WIFI_SSID);
     WiFi.persistent(false);
     WiFi.mode(WIFI_STA);
@@ -128,25 +182,27 @@ void setup() {
     }
     Serial.printf("[wifi] Connected: %s\n", WiFi.localIP().toString().c_str());
 
-    // 7. mDNS
+    // 6. mDNS
     if (!MDNS.begin("deskmate-esp32")) {
         Serial.println("[mdns] begin failed");
     }
 
-    // 8. NTP (for localtime() in UI)
+    // 7. NTP
     configTime(0, 0, "pool.ntp.org");
-    // timezone: set your UTC offset here, e.g. -5*3600 for EST, -8*3600 for PST
-    setenv("TZ", "CET-1CEST,M3.5.0,M10.5.0/3", 1); // Europe/Paris
+    setenv("TZ", "CET-1CEST,M3.5.0,M10.5.0/3", 1);
     tzset();
     Serial.println("[ntp] Syncing...");
 
-    // 9. First data fetch
+    // 8. First data fetch
     fetch_and_update();
 }
 
 // ─── Loop ────────────────────────────────────────────────────────────────────
 void loop() {
     lv_timer_handler();
+
+    poll_button(btn1, BUTTON1_PIN, on_btn1);
+    poll_button(btn2, BUTTON2_PIN, on_btn2);
 
     if (millis() - last_fetch > FETCH_INTERVAL_MS) {
         fetch_and_update();

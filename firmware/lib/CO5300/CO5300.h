@@ -15,6 +15,7 @@ public:
     void setWindow(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1);
     void pushColors(uint16_t *colors, uint32_t len);
     void fillScreen(uint16_t color);
+    void setBrightness(uint8_t level);  // 0=off, 255=max
 
     uint16_t width()  const { return _w; }
     uint16_t height() const { return _h; }

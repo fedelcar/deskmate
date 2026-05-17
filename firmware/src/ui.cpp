@@ -27,7 +27,7 @@ static int        current_screen = 0;
 
 // Main screen widgets
 static lv_obj_t *lbl_time, *lbl_date;
-static lv_obj_t *lbl_temp, *lbl_weather_desc, *lbl_hilo;
+static lv_obj_t *lbl_temp, *lbl_weather_desc;
 static lv_obj_t *lbl_event, *lbl_event_time;
 static lv_obj_t *arc_claude, *lbl_claude;
 
@@ -58,10 +58,12 @@ static lv_obj_t *make_label(lv_obj_t *parent, const lv_font_t *font,
     return l;
 }
 
-static void tap_cb(lv_event_t *) {
+void ui_next_screen() {
     current_screen = (current_screen + 1) % 3;
     lv_scr_load_anim(screens[current_screen], LV_SCR_LOAD_ANIM_FADE_ON, 250, 0, false);
 }
+
+static void tap_cb(lv_event_t *) { ui_next_screen(); }
 
 static void attach_tap(lv_obj_t *screen) {
     lv_obj_add_event_cb(screen, tap_cb, LV_EVENT_CLICKED, nullptr);
@@ -122,15 +124,11 @@ static void build_main(lv_obj_t *scr) {
     lbl_temp = make_label(scr, &lv_font_montserrat_28, CLR_YELLOW);
     lv_obj_align(lbl_temp, LV_ALIGN_CENTER, 0, -38);
 
-    // Weather description — just below temp
+    // Description + H/L — combined two-line label below temp
     lbl_weather_desc = make_label(scr, &lv_font_montserrat_14, CLR_GRAY);
-    lv_label_set_long_mode(lbl_weather_desc, LV_LABEL_LONG_DOT);
+    lv_label_set_long_mode(lbl_weather_desc, LV_LABEL_LONG_WRAP);
     lv_obj_set_width(lbl_weather_desc, 220);
-    lv_obj_align(lbl_weather_desc, LV_ALIGN_CENTER, 0, 2);
-
-    // High / Low — below description, extra gap to avoid overlap
-    lbl_hilo = make_label(scr, &lv_font_montserrat_14, CLR_CYAN);
-    lv_obj_align(lbl_hilo, LV_ALIGN_CENTER, 0, 38);
+    lv_obj_align(lbl_weather_desc, LV_ALIGN_CENTER, 0, 8);
 
     // Next event "in Xh Ym" — lower area
     lbl_event_time = make_label(scr, &lv_font_montserrat_12, CLR_CYAN);
@@ -272,15 +270,13 @@ void ui_update(JsonDocument &doc) {
 
         char desc_buf[48];
         strip_nonascii(desc_buf, sizeof(desc_buf), w["description"] | "");
-        lv_label_set_text(lbl_weather_desc, desc_buf);
-
-        snprintf(buf, sizeof(buf), "H %d\xC2\xB0  L %d\xC2\xB0", high, low);
-        lv_label_set_text(lbl_hilo, buf);
+        snprintf(buf, sizeof(buf), "%s\nH %d\xC2\xB0  L %d\xC2\xB0", desc_buf, high, low);
+        lv_label_set_text(lbl_weather_desc, buf);
 
         // Weather detail screen
         snprintf(buf, sizeof(buf), "%d\xC2\xB0%s", temp, deg);
         lv_label_set_text(lbl_w_main_temp, buf);
-        lv_label_set_text(lbl_w_desc, desc_buf);
+        lv_label_set_text(lbl_w_desc, desc_buf);  // desc_buf still valid here
         snprintf(buf, sizeof(buf), "H%d\xC2\xB0 L%d\xC2\xB0  Hum %d%%  Wind %d",
                  high, low, hum, wind);
         lv_label_set_text(lbl_w_details, buf);
@@ -348,4 +344,9 @@ void ui_update(JsonDocument &doc) {
     }
 
     lv_label_set_text(lbl_status, "");
+
+    // Force full re-render of the active screen to clear any stale buffer pixels.
+    // Without this, LVGL may leave old bitmap data in non-dirty strip regions,
+    // causing intermittent glyph corruption (especially for large fonts like time).
+    for (int i = 0; i < 3; i++) lv_obj_invalidate(screens[i]);
 }
